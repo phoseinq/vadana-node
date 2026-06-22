@@ -1,0 +1,13 @@
+# vadana-node worker. Put config.json + ca.crt + node.crt + node.key beside this
+# file, then:  docker compose up -d --build
+services:
+  worker:
+    build: .
+    image: vadana-node
+    container_name: vadana-node
+    volumes:
+      - ./config.json:/app/config.json:ro
+      - ./ca.crt:/app/ca.crt:ro
+      - ./node.crt:/app/node.crt:ro
+      - ./node.key:/app/node.key:ro
+    restart: unless-stopped
