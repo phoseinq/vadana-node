@@ -34,6 +34,7 @@ configure() {
 
 run() {
   case "$1" in
+    configure) configure ;;
     config)    shift; py config "$@" --config "$CFG" ;;
     test)      py test --config "$CFG" ;;
     run)       py run --config "$CFG" ;;

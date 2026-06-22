@@ -21,14 +21,11 @@ If no node is connected, the master builds everything itself — nothing changes
 
 ## Run a node
 
-**1. On the master**, register this node and get a bundle:
+**1. On the master**, run `vadana`, open the **Workers** menu (key `n`), and choose
+**add** — it asks the node name, auto-detects your server IP, and prints a bundle of
+three files: `ca.crt`, `node-<name>.crt`, `node-<name>.key`.
 
-```bash
-vadana node init --host <MASTER_IP>      # once: creates the CA + server cert
-vadana node add mynode --host <MASTER_IP>
-```
-
-That prints three files to copy: `ca.crt`, `node-mynode.crt`, `node-mynode.key`.
+> By command instead: `vadana node init --host <MASTER_IP>` then `vadana node add <name> --host <MASTER_IP>`.
 
 **2. On the node machine**, one command — it asks Docker or native:
 
@@ -36,15 +33,18 @@ That prints three files to copy: `ca.crt`, `node-mynode.crt`, `node-mynode.key`.
 curl -fsSL https://raw.githubusercontent.com/phoseinq/vadana-node/main/install.sh | bash
 ```
 
-Put the three files in the install dir as `ca.crt`, `node.crt`, `node.key`. A native
-install gives you a **`vadana-node`** command (and an interactive menu):
+Put the three files in the install dir as `ca.crt`, `node.crt`, `node.key`, then run
+**`vadana-node`** (interactive menu) → **configure** (master URL + cert files + workers)
+→ **start**.
 
 ```bash
-vadana-node                 # menu: configure, test, start, logs
-# or directly:
-vadana-node configure       # master URL + cert paths + workers
+vadana-node                 # interactive menu: configure · test · start · logs
+vadana-node configure       # interactive: prompts for master + cert files + workers
+# or non-interactive:
+vadana-node config --master https://<MASTER_IP>:8443 --ca ca.crt --cert node.crt --key node.key
 vadana-node test            # verify the mTLS handshake
 vadana-node start           # run as a systemd service
+vadana-node workers 3       # parallel workers (updates config + restarts)
 ```
 
 **Multiple workers** on one machine (parallel builds):
@@ -95,14 +95,11 @@ The node stores no secrets beyond its own cert/key.
 
 ### راه‌اندازیِ یک نود
 
-**۱) روی مستر** نود را ثبت کن و باندل بگیر:
+**۱) روی مستر** کافیه `vadana` را بزنی، بروی منوی **Workers** (کلیدِ `n`)، گزینهٔ **add** —
+اسمِ نود را می‌پرسد، IPِ سرور را خودش پیدا می‌کند، و باندلِ سه‌فایلی
+(`ca.crt`، `node-<name>.crt`، `node-<name>.key`) را چاپ می‌کند.
 
-```bash
-vadana node init --host <MASTER_IP>          # یک‌بار: ساختِ CA و گواهیِ سرور
-vadana node add mynode --host <MASTER_IP>
-```
-
-سه فایل چاپ می‌شود: `ca.crt`، `node-mynode.crt`، `node-mynode.key`.
+> یا با دستور: `vadana node init --host <MASTER_IP>` بعد `vadana node add <name> --host <MASTER_IP>`.
 
 **۲) روی ماشینِ نود** یک دستور (می‌پرسد داکر یا دستی):
 
