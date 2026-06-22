@@ -58,6 +58,7 @@ docker_mode() {
   command -v docker >/dev/null || { echo "Docker isn't installed — https://docs.docker.com/engine/install/"; exit 1; }
   apt-get install -y -q git
   fetch_code; cd "$DIR"
+  install -m 755 vadana-node.sh /usr/local/bin/vadana-node   # the manage CLI works in docker mode too
   if enroll; then
     write_config 1                   # each container runs one loop; --scale is the parallelism
     docker compose up -d --build --scale worker="$WORKERS"
