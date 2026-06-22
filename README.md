@@ -63,10 +63,79 @@ Back on the master, `vadana node status` shows which workers are connected.
 - Reachability to the master's node-API port (default `8443`)
 - The three cert files from `vadana node add`
 
-## Security
+## Certificates & keys
 
-mTLS both ways: the node verifies the master against the pinned CA, and the master
-verifies (and allow-lists) the node's certificate. Revoke a node from the master
-with `vadana node remove <name>`. The node stores no secrets beyond its own cert.
+You never run `openssl` — the master's CLI does it all:
+
+- **The master is the CA.** `vadana node init` creates `ca.crt` + `ca.key` (the CA
+  key never leaves the master) and the master's own `server.crt`.
+- `vadana node add <name>` issues a **client cert + key for that node**, signed by
+  the CA, and adds its fingerprint to the master's allowlist.
+- Copy **three files** to the node and name them `ca.crt`, `node.crt`, `node.key`.
+  Nothing else.
+- On connect (mTLS, both directions): the node proves itself with `node.crt` /
+  `node.key` and verifies the master against `ca.crt`; the master verifies the node's
+  cert against the CA **and** the allowlist. Revoke any time: `vadana node remove <name>`.
+
+The node stores no secrets beyond its own cert/key.
+
+---
+
+## فارسی
+
+<div dir="rtl" align="right">
+
+### این چیست
+
+مسترِ وادانا (همان رباتِ تلگرام) ویدیوی کلاس می‌سازد. وقتی اسلاتِ ویدیوی خودش پر است،
+کار را روی **TLSِ دوطرفه (mTLS)** به یک نودِ کارگر می‌سپارد. نود **نه پروکسیِ ایران دارد
+نه توکنِ تلگرام** — مستر هرچه لازم است (پکیجِ ضبط + PDFهای اشتراکی، در یک باندل) را می‌فرستد،
+نود رِندر می‌کند و MP4 را برمی‌گرداند. پس نود فقط CPU و ffmpeg است. اگر هیچ نودی وصل نباشد،
+مستر خودش همه‌چیز را می‌سازد — هیچ تغییری نمی‌کند.
+
+### راه‌اندازیِ یک نود
+
+**۱) روی مستر** نود را ثبت کن و باندل بگیر:
+
+```bash
+vadana node init --host <MASTER_IP>          # یک‌بار: ساختِ CA و گواهیِ سرور
+vadana node add mynode --host <MASTER_IP>
+```
+
+سه فایل چاپ می‌شود: `ca.crt`، `node-mynode.crt`، `node-mynode.key`.
+
+**۲) روی ماشینِ نود** یک دستور (می‌پرسد داکر یا دستی):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/phoseinq/vadana-node/main/install.sh | bash
+```
+
+آن سه فایل را در پوشهٔ نصب با نام‌های `ca.crt`، `node.crt`، `node.key` بگذار. نصبِ دستی یک
+دستورِ **`vadana-node`** (با منوی تعاملی) می‌دهد:
+
+```bash
+vadana-node                 # منو: configure، test، start، logs
+vadana-node configure       # آدرسِ مستر + مسیرِ گواهی‌ها + تعدادِ workerها
+vadana-node test            # تستِ اتصالِ mTLS
+vadana-node start           # اجرا به‌صورتِ سرویس
+```
+
+**چند ورکر** روی یک ماشین: `vadana-node workers 3` (دستی) یا `docker compose up --scale worker=3`
+(داکر). روی مستر `vadana node status` نشان می‌دهد کدام ورکرها وصل‌اند.
+
+### گواهی و کلید چطور؟
+
+دستی با `openssl` کاری نداری — همه را CLIِ مستر انجام می‌دهد:
+
+- **مستر همان CA است.** `vadana node init` فایل‌های `ca.crt` و `ca.key` را می‌سازد (کلیدِ CA
+  هیچ‌وقت از مستر خارج نمی‌شود) و گواهیِ سرورِ خودِ مستر را.
+- `vadana node add <name>` برای آن نود یک **گواهی + کلیدِ کلاینت** صادر می‌کند که با CA امضا
+  شده، و اثرانگشتش را به allowlistِ مستر اضافه می‌کند.
+- **سه فایل** را روی نود کپی کن با نام‌های `ca.crt`، `node.crt`، `node.key`. همین.
+- موقعِ اتصال (mTLSِ دوطرفه): نود با `node.crt`/`node.key` خودش را اثبات می‌کند و مستر را با
+  `ca.crt` وریفای می‌کند؛ مستر هم گواهیِ نود را با CA **و** allowlist چک می‌کند. ابطال هر وقت:
+  `vadana node remove <name>`.
+
+</div>
 
 <div align="center"><sub>MIT · <a href="https://github.com/phoseinq">phoseinq</a></sub></div>
