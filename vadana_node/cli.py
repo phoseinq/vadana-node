@@ -68,6 +68,25 @@ def cmd_run(args) -> int:
     return 0
 
 
+def cmd_enroll(args) -> int:
+    import base64
+    import io
+    import tarfile
+    blob = (args.bundle or sys.stdin.read()).strip()
+    buf = io.BytesIO(base64.b64decode(blob))
+    with tarfile.open(fileobj=buf, mode="r:gz") as tar:
+        for name in ("ca.crt", "node.crt", "node.key"):
+            with open(name, "wb") as f:
+                f.write(tar.extractfile(name).read())
+        master = tar.extractfile("master").read().decode().strip()
+    cfg = {"master": master, "ca": "ca.crt", "cert": "node.crt", "key": "node.key",
+           "workers": int(args.workers or 1)}
+    with open(args.config, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2)
+    print(f"✓ enrolled (master {master}, {cfg['workers']} worker(s))")
+    return 0
+
+
 def main(argv=None) -> int:
     try:
         sys.stdout.reconfigure(encoding="utf-8")
@@ -91,8 +110,14 @@ def main(argv=None) -> int:
         if name == "run":
             sp.add_argument("--workers", help="number of parallel worker loops (default 1)")
 
+    e = sub.add_parser("enroll")
+    e.add_argument("bundle", nargs="?", help="the base64 bundle (or piped on stdin)")
+    e.add_argument("--workers")
+    e.add_argument("--config", default=DEFAULT_CONFIG)
+
     args = p.parse_args(argv)
-    return {"config": cmd_config, "test": cmd_test, "run": cmd_run}[args.cmd](args)
+    return {"config": cmd_config, "test": cmd_test, "run": cmd_run,
+            "enroll": cmd_enroll}[args.cmd](args)
 
 
 if __name__ == "__main__":

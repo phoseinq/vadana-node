@@ -35,6 +35,11 @@ configure() {
 run() {
   case "$1" in
     configure) configure ;;
+    enroll)    local blob
+               printf 'Paste the enrollment bundle from the master, then Enter:\n' >/dev/tty
+               read -r blob </dev/tty
+               printf '%s' "$blob" | ( cd "$DIR" && "$PY" -m vadana_node.cli enroll --config "$CFG" ) \
+                 && systemctl restart "$SERVICE" 2>/dev/null && echo restarted ;;
     config)    shift; py config "$@" --config "$CFG" ;;
     test)      py test --config "$CFG" ;;
     run)       py run --config "$CFG" ;;
@@ -50,7 +55,7 @@ run() {
     uninstall) systemctl disable --now "$SERVICE" 2>/dev/null
                rm -f "/etc/systemd/system/$SERVICE.service"; systemctl daemon-reload
                echo "uninstalled (code left in $DIR)" ;;
-    *) echo "usage: vadana-node {configure|test|run|start|stop|restart|status|logs|workers N|update|uninstall}" >&2; return 2 ;;
+    *) echo "usage: vadana-node {enroll|configure|test|run|start|stop|restart|status|logs|workers N|update|uninstall}" >&2; return 2 ;;
   esac
 }
 
@@ -62,13 +67,12 @@ menu() {
     case "$st" in active) dot="${G}●${N}" ;; inactive|failed) dot="${R}●${N}" ;; *) dot="${Y}●${N}" ;; esac
     printf "\n   ${C}■${N} ${B}vadana-node${N} ${D}· worker${N}\n   service ${dot} %s\n\n" "$st"
     [ -f "$CFG" ] && py test --config "$CFG" 2>/dev/null
-    printf "\n   ${C}1${N} configure (master + certs + workers)\n"
-    printf "   ${C}2${N} test connection\n"
+    printf "\n   ${C}1${N} enroll (paste bundle from master)   ${C}2${N} test connection\n"
     printf "   ${C}s${N} start   ${C}x${N} stop   ${C}r${N} restart   ${C}t${N} status   ${C}l${N} logs\n"
     printf "   ${C}u${N} update   ${C}q${N} quit\n\n   ${C}›${N} "
     read -r c || break
     case "$c" in
-      1) configure; pause ;; 2) run test; pause ;;
+      1) run enroll; pause ;; 2) run test; pause ;;
       s|S) run start; pause ;; x|X) run stop; pause ;; r|R) run restart; pause ;;
       t|T) run status; pause ;; l|L) run logs ;; u|U) run update; pause ;;
       q|Q|0|"") clear 2>/dev/null; exit 0 ;;
