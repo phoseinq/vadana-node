@@ -123,15 +123,23 @@ def _session(cfg: NodeConfig):
 
 async def run_worker(cfg: NodeConfig, once: bool = False) -> None:
     async with _session(cfg) as s:
+        connected = None                               # None=unknown, True/False=last known state
         while True:
             job = None
             try:
-                await s.get("/ping")                   # heartbeat
+                r = await s.get("/ping")               # connection check + heartbeat
+                r.raise_for_status()                   # 403 (cert not allowed) / 5xx count as down
+                if connected is not True:
+                    log.info("✓ connected to %s", cfg.master)
+                    connected = True
                 job = await _claim(s)
                 if job:
                     await _handle(s, job)
             except Exception as e:
-                log.warning("poll failed (%s); retrying", e)
+                if connected is not False:             # log the drop once, then keep retrying
+                    log.warning("✗ disconnected from %s (%s) — reconnecting every %ss",
+                                cfg.master, e, cfg.poll_interval)
+                    connected = False
             if once:
                 return
             await asyncio.sleep(cfg.poll_interval)

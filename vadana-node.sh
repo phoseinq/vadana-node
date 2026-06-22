@@ -87,7 +87,7 @@ menu() {
     st=$(svc_active)
     case "$st" in active) dot="${G}●${N}" ;; *) dot="${R}●${N}" ;; esac
     printf "\n   ${C}■${N} ${B}vadana-node${N} ${D}· worker (%s)${N}\n   service ${dot} %s\n\n" "$MODE" "$st"
-    printf "   ${C}1${N} enroll (paste bundle from master)   ${C}2${N} test connection\n"
+    printf "   ${C}1${N} enroll / replace certificate (paste bundle)   ${C}2${N} test connection\n"
     printf "   ${C}s${N} start   ${C}x${N} stop   ${C}r${N} restart   ${C}t${N} status   ${C}l${N} logs\n"
     printf "   ${C}w${N} workers   ${C}u${N} update   ${C}q${N} quit\n\n   ${C}›${N} "
     read -r c || break

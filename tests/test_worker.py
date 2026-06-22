@@ -57,6 +57,39 @@ def test_worker_claims_downloads_renders_posts(monkeypatch):
     asyncio.run(_body(monkeypatch))
 
 
+def test_worker_logs_disconnect_and_skips_claim_on_bad_ping(caplog):
+    asyncio.run(_disconnect_body(caplog))
+
+
+async def _disconnect_body(caplog):
+    import logging
+
+    routes = web.RouteTableDef()
+
+    @routes.get("/ping")
+    async def ping(r):
+        return web.Response(status=403)               # cert not allowed -> counts as down
+
+    @routes.post("/jobs/claim")
+    async def claim(r):
+        raise AssertionError("must not claim while disconnected")
+
+    app = web.Application()
+    app.add_routes(routes)
+    port = _free_port()
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "127.0.0.1", port)
+    await site.start()
+    try:
+        caplog.set_level(logging.WARNING)
+        cfg = NodeConfig(master=f"http://127.0.0.1:{port}", poll_interval=0.01)
+        await run_worker(cfg, once=True)              # must not raise, must not claim
+        assert "disconnected" in caplog.text.lower()
+    finally:
+        await runner.cleanup()
+
+
 async def _body(monkeypatch):
     state = {"job": True, "claimed": False, "bundle": b"PK\x03\x04stub-bundle",
              "progress": None, "result": None, "fail": None}
