@@ -61,7 +61,8 @@ docker_mode() {
   install -m 755 vadana-node.sh /usr/local/bin/vadana-node   # the manage CLI works in docker mode too
   if enroll; then
     write_config 1                   # each container runs one loop; --scale is the parallelism
-    docker compose up -d --build --scale worker="$WORKERS"
+    printf 'building image (first run downloads ~250MB, please wait)…\n'
+    docker compose --progress quiet up -d --build --scale worker="$WORKERS"
     printf '\n✓ running (%s worker(s)).  logs:  docker compose logs -f\n\n' "$WORKERS"
     sleep 2; docker compose logs --tail=15 || true
   else

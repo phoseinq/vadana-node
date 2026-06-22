@@ -68,9 +68,9 @@ run() {
     status)  svc_status ;;
     logs)    svc_logs ;;
     workers) set_workers "${2:-1}" ;;
-    update)  ( cd "$DIR" && git pull --ff-only ) || return 1
+    update)  ( cd "$DIR" && git pull --ff-only -q ) || return 1
              if [ "$MODE" = native ]; then "$DIR/venv/bin/pip" install -q -r "$DIR/requirements.txt" && systemctl restart "$SERVICE" && echo updated
-             else dc up -d --build && echo updated; fi ;;
+             else printf 'rebuilding…\n'; dc --progress quiet up -d --build && echo updated; fi ;;
     uninstall)
              if [ "$MODE" = native ]; then systemctl disable --now "$SERVICE" 2>/dev/null
                rm -f "/etc/systemd/system/$SERVICE.service"; systemctl daemon-reload
