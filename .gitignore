@@ -1,0 +1,16 @@
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# render scratch / outputs
+*.mp4
+*.zip
+work/
+
+# node runtime — per-machine config and certificates (never commit these)
+config.json
+*.crt
+*.key
