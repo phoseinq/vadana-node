@@ -56,8 +56,13 @@ def cmd_test(args) -> int:
 def cmd_run(args) -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     cfg = _load(args.config)
-    print(f"worker connecting to {cfg.master} …")
-    asyncio.run(run_worker(cfg))
+    n = max(1, int(args.workers or 1))
+    print(f"{n} worker(s) connecting to {cfg.master} …")
+
+    async def _all():
+        await asyncio.gather(*[run_worker(cfg) for _ in range(n)])
+
+    asyncio.run(_all())
     return 0
 
 
@@ -80,6 +85,8 @@ def main(argv=None) -> int:
     for name in ("test", "run"):
         sp = sub.add_parser(name)
         sp.add_argument("--config", default=DEFAULT_CONFIG)
+        if name == "run":
+            sp.add_argument("--workers", help="number of parallel worker loops (default 1)")
 
     args = p.parse_args(argv)
     return {"config": cmd_config, "test": cmd_test, "run": cmd_run}[args.cmd](args)

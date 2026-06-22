@@ -30,28 +30,31 @@ vadana node add mynode --host <MASTER_IP>
 
 That prints three files to copy: `ca.crt`, `node-mynode.crt`, `node-mynode.key`.
 
-**2. On the node machine**, put those three files here as `ca.crt`, `node.crt`,
-`node.key` (rename on copy), then either Docker or native:
-
-**Docker (recommended):**
+**2. On the node machine**, one command — it asks Docker or native:
 
 ```bash
-# config.json + ca.crt + node.crt + node.key all sit next to docker-compose.yml
-python -m vadana_node.cli config --master https://<MASTER_IP>:8443 \
-    --ca ca.crt --cert node.crt --key node.key
-docker compose up -d --build
-docker compose logs -f
+curl -fsSL https://raw.githubusercontent.com/phoseinq/vadana-node/main/install.sh | bash
 ```
 
-**Native:**
+Put the three files in the install dir as `ca.crt`, `node.crt`, `node.key`, point it
+at the master, and start:
 
 ```bash
-pip install -r requirements.txt           # + ffmpeg on PATH
-python -m vadana_node.cli config --master https://<MASTER_IP>:8443 \
-    --ca ca.crt --cert node.crt --key node.key
-python -m vadana_node.cli test            # verify the mTLS handshake
-python -m vadana_node.cli run             # start claiming jobs
+vadana-node config --master https://<MASTER_IP>:8443 --ca ca.crt --cert node.crt --key node.key
+vadana-node test            # verify the mTLS handshake
+vadana-node run             # start claiming jobs
 ```
+
+(`vadana-node` above = `python -m vadana_node.cli` in a native install, or the container's command.)
+
+**Multiple workers** on one machine (parallel builds):
+
+```bash
+vadana-node run --workers 3                       # native
+docker compose up -d --build --scale worker=3     # Docker
+```
+
+Back on the master, `vadana node status` shows which workers are connected.
 
 ## Requirements
 
