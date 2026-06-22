@@ -2,7 +2,11 @@
 # file, then:  docker compose up -d --build
 services:
   worker:
-    build: .
+    build:
+      context: .
+      # build over the host network so pip uses the same working route as the host
+      # (the default bridge on some hosts can't reach pypi over IPv6)
+      network: host
     image: vadana-node
     container_name: vadana-node
     volumes:
