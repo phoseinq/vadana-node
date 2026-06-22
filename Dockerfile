@@ -21,8 +21,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY vadana_node ./vadana_node
 
-RUN useradd -m -u 10001 node && chown -R node /app
-USER node
-
+# Runs as root so it can read the mounted node.key (root-owned, 0600). The key stays
+# private; the container is a single-purpose, low-trust renderer.
 # config.json + ca.crt/node.crt/node.key are mounted at /app (see docker-compose.yml)
 CMD ["python", "-m", "vadana_node.cli", "run"]
