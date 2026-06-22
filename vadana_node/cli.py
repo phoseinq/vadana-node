@@ -22,15 +22,17 @@ def _load(path: str) -> NodeConfig:
     with open(path, encoding="utf-8") as f:
         d = json.load(f)
     return NodeConfig(master=d["master"], ca=d.get("ca"), cert=d.get("cert"),
-                      key=d.get("key"), poll_interval=float(d.get("poll_interval", 5.0)))
+                      key=d.get("key"), poll_interval=float(d.get("poll_interval", 5.0)),
+                      workers=int(d.get("workers", 1)))
 
 
 def cmd_config(args) -> int:
     cfg = {"master": args.master, "ca": args.ca, "cert": args.cert,
-           "key": args.key, "poll_interval": float(args.poll or 5.0)}
+           "key": args.key, "poll_interval": float(args.poll or 5.0),
+           "workers": int(args.workers or 1)}
     with open(args.config, "w", encoding="utf-8") as f:
         json.dump(cfg, f, indent=2)
-    print(f"✓ wrote {args.config} (master {args.master})")
+    print(f"✓ wrote {args.config} (master {args.master}, {cfg['workers']} worker(s))")
     return 0
 
 
@@ -56,7 +58,7 @@ def cmd_test(args) -> int:
 def cmd_run(args) -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     cfg = _load(args.config)
-    n = max(1, int(args.workers or 1))
+    n = max(1, int(args.workers or cfg.workers))
     print(f"{n} worker(s) connecting to {cfg.master} …")
 
     async def _all():
@@ -80,6 +82,7 @@ def main(argv=None) -> int:
     c.add_argument("--cert", required=True)
     c.add_argument("--key", required=True)
     c.add_argument("--poll")
+    c.add_argument("--workers")
     c.add_argument("--config", default=DEFAULT_CONFIG)
 
     for name in ("test", "run"):

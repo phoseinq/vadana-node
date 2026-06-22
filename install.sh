@@ -23,14 +23,17 @@ native() {
   python3 -m venv venv
   venv/bin/pip install -qU pip
   venv/bin/pip install -q -r requirements.txt
+  install -m 755 vadana-node.sh /usr/local/bin/vadana-node
+  cp systemd/vadana-node.service /etc/systemd/system/
+  systemctl daemon-reload
   cat <<DONE
 
 ✓ Installed (native). Drop your ca.crt / node.crt / node.key in $DIR, then:
-    cd $DIR
-    venv/bin/python -m vadana_node.cli config --master https://<MASTER_IP>:8443 \\
-        --ca ca.crt --cert node.crt --key node.key
-    venv/bin/python -m vadana_node.cli test          # verify the mTLS connection
-    venv/bin/python -m vadana_node.cli run           # add --workers N for parallel builds
+    vadana-node                 # interactive menu (configure, test, start, logs)
+  or directly:
+    vadana-node configure       # master URL + cert paths + workers
+    vadana-node test            # verify the mTLS connection
+    vadana-node start           # run as a service (systemd)
 DONE
 }
 

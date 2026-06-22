@@ -36,21 +36,22 @@ That prints three files to copy: `ca.crt`, `node-mynode.crt`, `node-mynode.key`.
 curl -fsSL https://raw.githubusercontent.com/phoseinq/vadana-node/main/install.sh | bash
 ```
 
-Put the three files in the install dir as `ca.crt`, `node.crt`, `node.key`, point it
-at the master, and start:
+Put the three files in the install dir as `ca.crt`, `node.crt`, `node.key`. A native
+install gives you a **`vadana-node`** command (and an interactive menu):
 
 ```bash
-vadana-node config --master https://<MASTER_IP>:8443 --ca ca.crt --cert node.crt --key node.key
+vadana-node                 # menu: configure, test, start, logs
+# or directly:
+vadana-node configure       # master URL + cert paths + workers
 vadana-node test            # verify the mTLS handshake
-vadana-node run             # start claiming jobs
+vadana-node start           # run as a systemd service
 ```
-
-(`vadana-node` above = `python -m vadana_node.cli` in a native install, or the container's command.)
 
 **Multiple workers** on one machine (parallel builds):
 
 ```bash
-vadana-node run --workers 3                       # native
+vadana-node configure       # set "workers" when prompted, or:
+vadana-node workers 3       # native (updates config + restarts the service)
 docker compose up -d --build --scale worker=3     # Docker
 ```
 

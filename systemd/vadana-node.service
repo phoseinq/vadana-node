@@ -1,0 +1,14 @@
+[Unit]
+Description=Vadana worker node (renders video jobs for the master)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/opt/vadana-node
+ExecStart=/opt/vadana-node/venv/bin/python -m vadana_node.cli run
+Restart=always
+RestartSec=5
+User=root
+
+[Install]
+WantedBy=multi-user.target

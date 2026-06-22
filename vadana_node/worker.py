@@ -27,6 +27,7 @@ class NodeConfig:
     cert: str | None = None         # path to this node's cert
     key: str | None = None          # path to this node's key
     poll_interval: float = 5.0
+    workers: int = 1                # parallel worker loops (run --workers overrides)
 
 
 def client_context(ca: str, cert: str, key: str) -> ssl.SSLContext:
