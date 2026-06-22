@@ -70,7 +70,8 @@ run() {
     workers) set_workers "${2:-1}" ;;
     update)  ( cd "$DIR" && git pull --ff-only -q ) || return 1
              if [ "$MODE" = native ]; then "$DIR/venv/bin/pip" install -q -r "$DIR/requirements.txt" && systemctl restart "$SERVICE" && echo updated
-             else printf 'rebuilding…\n'; dc --progress quiet up -d --build && echo updated; fi ;;
+             elif printf 'pulling latest image…\n'; dc pull --quiet; then dc up -d && echo updated
+             else printf 'no image — building…\n'; dc --progress quiet up -d --build && echo updated; fi ;;
     uninstall)
              if [ "$MODE" = native ]; then systemctl disable --now "$SERVICE" 2>/dev/null
                rm -f "/etc/systemd/system/$SERVICE.service"; systemctl daemon-reload
