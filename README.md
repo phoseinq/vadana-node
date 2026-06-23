@@ -21,11 +21,12 @@ If no node is connected, the master builds everything itself — nothing changes
 
 ## Run a node
 
-**1. On the master**, run `vadana`, open the **Workers** menu (key `n`), and choose
-**add** — it asks the node name, auto-detects your server IP, and prints a bundle of
-three files: `ca.crt`, `node-<name>.crt`, `node-<name>.key`.
+**1. On the master**, run `vadana`, open the **Workers** menu (key `n`), choose
+**add** — it asks the node name, auto-detects your server IP, and prints a single
+**enrollment bundle**: one base64 line that holds the CA, this node's cert/key, and the
+master address. Re-show it any time with **show enrollment bundle**.
 
-> By command instead: `vadana node init --host <MASTER_IP>` then `vadana node add <name> --host <MASTER_IP>`.
+> By command: `vadana node add <name>` (the master IP is auto-detected).
 
 **2. On the node machine**, one command — it asks Docker or native:
 
@@ -33,35 +34,38 @@ three files: `ca.crt`, `node-<name>.crt`, `node-<name>.key`.
 curl -fsSL https://raw.githubusercontent.com/phoseinq/vadana-node/main/install.sh | bash
 ```
 
-Put the three files in the install dir as `ca.crt`, `node.crt`, `node.key`, then run
-**`vadana-node`** (interactive menu) → **configure** (master URL + cert files + workers)
-→ **start**.
+Paste the bundle when asked; the installer writes the certs, **pulls the prebuilt image**
+(Docker) or sets up a venv (native), starts the worker, and tails the logs.
+
+**Manage it** with `vadana-node` — same commands whether you installed with Docker or native:
 
 ```bash
-vadana-node                 # interactive menu: configure · test · start · logs
-vadana-node configure       # interactive: prompts for master + cert files + workers
-# or non-interactive:
-vadana-node config --master https://<MASTER_IP>:8443 --ca ca.crt --cert node.crt --key node.key
+vadana-node                 # interactive menu
+vadana-node enroll          # paste a bundle to enroll / replace the certificate
 vadana-node test            # verify the mTLS handshake
-vadana-node start           # run as a systemd service
-vadana-node workers 3       # parallel workers (updates config + restarts)
+vadana-node logs            # follow the worker logs
+vadana-node update          # pull the latest image (Docker) / git-pull + restart (native)
+vadana-node workers 3       # run N parallel workers
 ```
 
-**Multiple workers** on one machine (parallel builds):
+Back on the master, `vadana node status` shows live which workers are connected.
+
+### Docker: pull, don't build
+
+The worker runs the published image `ghcr.io/phoseinq/vadana-node:latest` (CI pushes it on
+every release), so updates just pull — no local build:
 
 ```bash
-vadana-node configure       # set "workers" when prompted, or:
-vadana-node workers 3       # native (updates config + restarts the service)
-docker compose up -d --build --scale worker=3     # Docker
+docker compose pull && docker compose up -d      # or simply: vadana-node update
 ```
 
-Back on the master, `vadana node status` shows which workers are connected.
+`build:` stays in the compose file as a local fallback (`docker compose up --build`).
 
 ## Requirements
 
-- Python **3.11+**, `ffmpeg`/`ffprobe` on `PATH`
+- **Docker** (recommended) — or, for a native install: Python **3.11+** with `ffmpeg`/`ffprobe` on `PATH`
 - Reachability to the master's node-API port (default `8443`)
-- The three cert files from `vadana node add`
+- The enrollment bundle from `vadana node add`
 
 ## Certificates & keys
 
@@ -71,8 +75,8 @@ You never run `openssl` — the master's CLI does it all:
   key never leaves the master) and the master's own `server.crt`.
 - `vadana node add <name>` issues a **client cert + key for that node**, signed by
   the CA, and adds its fingerprint to the master's allowlist.
-- Copy **three files** to the node and name them `ca.crt`, `node.crt`, `node.key`.
-  Nothing else.
+- The master packs the CA, that node's cert/key, and its address into **one enrollment
+  bundle** (a single base64 line). You paste that one string on the node — nothing else to copy.
 - On connect (mTLS, both directions): the node proves itself with `node.crt` /
   `node.key` and verifies the master against `ca.crt`; the master verifies the node's
   cert against the CA **and** the allowlist. Revoke any time: `vadana node remove <name>`.
@@ -96,10 +100,11 @@ The node stores no secrets beyond its own cert/key.
 ### راه‌اندازیِ یک نود
 
 **۱) روی مستر** کافیه `vadana` را بزنی، بروی منوی **Workers** (کلیدِ `n`)، گزینهٔ **add** —
-اسمِ نود را می‌پرسد، IPِ سرور را خودش پیدا می‌کند، و باندلِ سه‌فایلی
-(`ca.crt`، `node-<name>.crt`، `node-<name>.key`) را چاپ می‌کند.
+اسمِ نود را می‌پرسد، IPِ سرور را خودش پیدا می‌کند، و یک **باندلِ ثبت‌نام** چاپ می‌کند: یک خطِ
+base64 که CA، گواهی/کلیدِ همان نود و آدرسِ مستر در آن است. هر وقت خواستی دوباره نشانش بده با
+**show enrollment bundle**.
 
-> یا با دستور: `vadana node init --host <MASTER_IP>` بعد `vadana node add <name> --host <MASTER_IP>`.
+> یا با دستور: `vadana node add <name>` (آی‌پیِ مستر خودکار پیدا می‌شود).
 
 **۲) روی ماشینِ نود** یک دستور (می‌پرسد داکر یا دستی):
 
@@ -107,18 +112,32 @@ The node stores no secrets beyond its own cert/key.
 curl -fsSL https://raw.githubusercontent.com/phoseinq/vadana-node/main/install.sh | bash
 ```
 
-آن سه فایل را در پوشهٔ نصب با نام‌های `ca.crt`، `node.crt`، `node.key` بگذار. نصبِ دستی یک
-دستورِ **`vadana-node`** (با منوی تعاملی) می‌دهد:
+باندل را که خواست paste کن؛ نصب‌کننده گواهی‌ها را می‌نویسد، **ایمیجِ آماده را pull می‌کند** (داکر)
+یا venv می‌سازد (دستی)، ورکر را بالا می‌آورد و لاگ را نشان می‌دهد.
+
+**مدیریت** با `vadana-node` — چه نصبِ داکری چه دستی، دستورها یکی‌اند:
 
 ```bash
-vadana-node                 # منو: configure، test، start، logs
-vadana-node configure       # آدرسِ مستر + مسیرِ گواهی‌ها + تعدادِ workerها
+vadana-node                 # منوی تعاملی
+vadana-node enroll          # paste کردنِ باندل برای ثبت/عوض‌کردنِ گواهی
 vadana-node test            # تستِ اتصالِ mTLS
-vadana-node start           # اجرا به‌صورتِ سرویس
+vadana-node logs            # دیدنِ لاگِ ورکر
+vadana-node update          # pull کردنِ آخرین ایمیج (داکر) / git-pull + ری‌استارت (دستی)
+vadana-node workers 3       # اجرای N ورکرِ موازی
 ```
 
-**چند ورکر** روی یک ماشین: `vadana-node workers 3` (دستی) یا `docker compose up --scale worker=3`
-(داکر). روی مستر `vadana node status` نشان می‌دهد کدام ورکرها وصل‌اند.
+روی مستر `vadana node status` به‌صورتِ زنده نشان می‌دهد کدام ورکرها وصل‌اند.
+
+### داکر: pull به‌جای build
+
+ورکر ایمیجِ منتشرشدهٔ `ghcr.io/phoseinq/vadana-node:latest` را اجرا می‌کند (CI روی هر ریلیز پوش
+می‌کند)، پس آپدیت فقط pull است — بدونِ build:
+
+```bash
+docker compose pull && docker compose up -d      # یا ساده‌تر: vadana-node update
+```
+
+`build:` هم در compose به‌عنوانِ fallbackِ محلی می‌ماند (`docker compose up --build`).
 
 ### گواهی و کلید چطور؟
 
@@ -128,7 +147,8 @@ vadana-node start           # اجرا به‌صورتِ سرویس
   هیچ‌وقت از مستر خارج نمی‌شود) و گواهیِ سرورِ خودِ مستر را.
 - `vadana node add <name>` برای آن نود یک **گواهی + کلیدِ کلاینت** صادر می‌کند که با CA امضا
   شده، و اثرانگشتش را به allowlistِ مستر اضافه می‌کند.
-- **سه فایل** را روی نود کپی کن با نام‌های `ca.crt`، `node.crt`، `node.key`. همین.
+- مستر، CA و گواهی/کلیدِ آن نود و آدرسش را در **یک باندلِ ثبت‌نام** (یک خطِ base64) بسته‌بندی
+  می‌کند. همان یک رشته را روی نود paste می‌کنی — چیزِ دیگری برای کپی نیست.
 - موقعِ اتصال (mTLSِ دوطرفه): نود با `node.crt`/`node.key` خودش را اثبات می‌کند و مستر را با
   `ca.crt` وریفای می‌کند؛ مستر هم گواهیِ نود را با CA **و** allowlist چک می‌کند. ابطال هر وقت:
   `vadana node remove <name>`.
