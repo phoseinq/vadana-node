@@ -393,6 +393,15 @@ def _meta_seconds(zf, xml_name) -> float:
     m = re.search(r"onMetaData.*?<Number><!\[CDATA\[([\d.]+)\]\]>", d, re.S)
     return float(m.group(1)) if m else 0.0
 
+def _static_silent(frames, audio_path, has_shares) -> bool:
+    """True when the render is a lone still frame with no audio and no screen-share.
+    Such a clip can't be built: `-t master_s` only truncates, so a single still frame
+    muxes to a ~0s video (e.g. a PDF opened but never presented, on an audio-less
+    telephony session). The caller returns None so a slideshow / the slides are sent."""
+    if audio_path or has_shares or not frames:
+        return False
+    return (frames[-1][0] - frames[0][0]) < 2.0
+
 def make_full_video(zf, work_dir, out_path, scale: int = 2, max_fps: float = 4.0, progress=None,
                     pdf_paths=None, out_w: int = 2560, out_h: int = 1440):
     """Mixed recording -> one 16:9 MP4 on the master timeline: the whiteboard
@@ -504,6 +513,9 @@ def make_full_video(zf, work_dir, out_path, scale: int = 2, max_fps: float = 4.0
     if not frames or min(t for t, _ in frames) > 0.3:
         frames.append((0.0, blank))
     frames.sort(key=lambda f: f[0])
+
+    if _static_silent(frames, audio_path, bool(shares)):
+        return None
 
     rep("encode", 76)
     _mux_timed(frames, audio_path, out_path, work_dir, master_s,
