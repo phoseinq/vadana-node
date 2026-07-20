@@ -420,7 +420,13 @@ def make_full_video(zf, work_dir, out_path, scale: int = 2, max_fps: float = 4.0
             progress(stage, pct)
 
     os.makedirs(work_dir, exist_ok=True)
-    streams = tl.parse_streams(zf.read("indexstream.xml").decode("utf-8", "replace"))
+    try:
+        idx = zf.read("indexstream.xml").decode("utf-8", "replace")
+    except KeyError:
+        # new-style package (raw FLVs, no XML manifests): nothing renderable is
+        # discoverable — the caller falls back to the lecture audio (FLV-based)
+        return None
+    streams = tl.parse_streams(idx)
     shares = [s for s in streams if s["type"] == "screenshare"]
     wb = wb_mod.load_from_package(zf)
     pdf_nav = wb_mod.load_pdf_content(zf)
